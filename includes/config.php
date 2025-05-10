@@ -14,6 +14,9 @@ define('UPLOAD_DIR', __DIR__ . '/../uploads/');
 define('ALLOWED_EXTENSIONS', ['obj', 'mtl', 'glb']);
 define('MAX_FILE_SIZE', 50 * 1024 * 1024); // 50MB
 
+// Include Supabase configuration if needed
+require_once __DIR__ . '/supabase_config.php';
+
 // Error reporting (disable in production)
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
