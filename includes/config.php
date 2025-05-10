@@ -9,7 +9,7 @@ define('DB_PASS', getenv('PGPASSWORD') ?: '');
 define('DB_NAME', getenv('PGDATABASE') ?: '3d_cms');
 
 // Application paths
-define('BASE_URL', 'http://localhost:5000');
+define('BASE_URL', 'http://localhost/Content3DManager');
 define('UPLOAD_DIR', __DIR__ . '/../uploads/');
 define('ALLOWED_EXTENSIONS', ['obj', 'mtl', 'glb']);
 define('MAX_FILE_SIZE', 50 * 1024 * 1024); // 50MB
@@ -25,12 +25,14 @@ ini_set('display_errors', 1);
 date_default_timezone_set('UTC');
 
 // Function to sanitize input
-function sanitize($input) {
+function sanitize($input)
+{
     return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
 }
 
 // Function to generate random string
-function generateRandomString($length = 10) {
+function generateRandomString($length = 10)
+{
     $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
     $charactersLength = strlen($characters);
     $randomString = '';
