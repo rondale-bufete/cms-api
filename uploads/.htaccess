@@ -1,0 +1,15 @@
+# Deny direct access to the directory
+Options -Indexes
+
+# Allow access to specific file types
+<FilesMatch "\.(obj|mtl|glb)$">
+    Order allow,deny
+    Allow from all
+</FilesMatch>
+
+# Set proper MIME types for 3D files
+<IfModule mod_mime.c>
+    AddType model/obj .obj
+    AddType text/plain .mtl
+    AddType model/gltf-binary .glb
+</IfModule>
