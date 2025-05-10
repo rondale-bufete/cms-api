@@ -87,11 +87,26 @@ include_once __DIR__ . '/includes/header.php';
                     
                     <div class="mb-3">
                         <h5>3D Object Viewer</h5>
-                        <div id="model-viewer" class="viewer-container" data-file-path="<?php echo BASE_URL . '/uploads/' . $object['file_path']; ?>" data-file-type="<?php echo $object['file_type']; ?>"></div>
+                        <div id="model-viewer" class="viewer-container" 
+                             data-file-path="<?php 
+                                if (filter_var($object['file_path'], FILTER_VALIDATE_URL)) {
+                                    echo $object['file_path']; // Supabase URL
+                                } else {
+                                    echo BASE_URL . '/uploads/' . $object['file_path']; // Local file
+                                }
+                             ?>" 
+                             data-file-type="<?php echo $object['file_type']; ?>">
+                        </div>
                     </div>
                     
                     <div class="d-flex justify-content-between">
-                        <a href="<?php echo BASE_URL . '/uploads/' . $object['file_path']; ?>" download class="btn btn-primary">
+                        <a href="<?php 
+                            if (filter_var($object['file_path'], FILTER_VALIDATE_URL)) {
+                                echo $object['file_path']; // Supabase URL
+                            } else {
+                                echo BASE_URL . '/uploads/' . $object['file_path']; // Local file
+                            }
+                        ?>" download class="btn btn-primary">
                             <i class="fas fa-download me-2"></i> Download <?php echo strtoupper($object['file_type']); ?> File
                         </a>
                         
@@ -141,7 +156,13 @@ include_once __DIR__ . '/includes/header.php';
                                 <i class="fas fa-file me-2"></i>
                                 <?php echo htmlspecialchars($file['original_name']); ?>
                             </div>
-                            <a href="<?php echo BASE_URL . '/uploads/' . $file['file_path']; ?>" download class="btn btn-sm btn-outline-primary">
+                            <a href="<?php 
+                                if (filter_var($file['file_path'], FILTER_VALIDATE_URL)) {
+                                    echo $file['file_path']; // Supabase URL
+                                } else {
+                                    echo BASE_URL . '/uploads/' . $file['file_path']; // Local file
+                                }
+                            ?>" download class="btn btn-sm btn-outline-primary">
                                 <i class="fas fa-download"></i>
                             </a>
                         </div>

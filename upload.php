@@ -70,13 +70,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // If no errors, process upload
     if (empty($errors)) {
+        // Include Supabase storage functionality if enabled
+        require_once __DIR__ . '/includes/supabase_storage.php';
+        
         // Create a unique filename
         $uniqueId = time() . '_' . generateRandomString(8);
         $newFileName = $uniqueId . '.' . $fileExtension;
         $uploadPath = UPLOAD_DIR . $newFileName;
+        $filePath = $newFileName; // Default to local storage
+        $useSupabase = is_supabase_enabled();
         
-        // Move the uploaded file
+        // Move the uploaded file locally first
         if (move_uploaded_file($file['tmp_name'], $uploadPath)) {
+            // If Supabase is enabled, upload the file to Supabase Storage
+            if ($useSupabase) {
+                $supabaseUrl = uploadToSupabase($uploadPath, $newFileName);
+                if ($supabaseUrl) {
+                    $filePath = $supabaseUrl; // Use Supabase URL for database storage
+                }
+            }
+            
             // Process related files if any
             $relatedFiles = [];
             if (isset($_FILES['related_files']) && is_array($_FILES['related_files']['name'])) {
@@ -96,11 +109,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if (in_array($relatedExtension, ALLOWED_EXTENSIONS)) {
                             $relatedFileName = $uniqueId . '_related_' . count($relatedFiles) . '.' . $relatedExtension;
                             $relatedPath = UPLOAD_DIR . $relatedFileName;
+                            $relatedFilePath = $relatedFileName; // Default to local
                             
                             if (move_uploaded_file($relatedFile['tmp_name'], $relatedPath)) {
+                                // If Supabase is enabled, upload the related file too
+                                if ($useSupabase) {
+                                    $relatedSupabaseUrl = uploadToSupabase($relatedPath, $relatedFileName);
+                                    if ($relatedSupabaseUrl) {
+                                        $relatedFilePath = $relatedSupabaseUrl;
+                                    }
+                                }
+                                
                                 $relatedFiles[] = [
                                     'original_name' => $relatedFile['name'],
-                                    'file_path' => $relatedFileName,
+                                    'file_path' => $relatedFilePath,
                                     'file_type' => $relatedExtension,
                                     'file_size' => $relatedFile['size']
                                 ];
@@ -119,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $db->executeQuery(
                 $query,
                 "issssis",
-                [$userId, $title, $description, $newFileName, $fileType, $file['size'], $relatedFilesJson]
+                [$userId, $title, $description, $filePath, $fileType, $file['size'], $relatedFilesJson]
             );
             
             if ($result['affected_rows'] > 0) {
@@ -133,9 +155,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Clean up the uploaded file if database insert fails
                 unlink($uploadPath);
                 
+                // If using Supabase, we would delete from Supabase here too
+                if ($useSupabase && isSupabaseUrl($filePath)) {
+                    deleteFromSupabase($newFileName);
+                }
+                
                 // Clean up related files if any
                 foreach ($relatedFiles as $relatedFile) {
-                    unlink(UPLOAD_DIR . $relatedFile['file_path']);
+                    $localPath = UPLOAD_DIR . basename($relatedFile['file_path']);
+                    if (file_exists($localPath)) {
+                        unlink($localPath);
+                    }
+                    
+                    // Delete from Supabase if applicable
+                    if ($useSupabase && isSupabaseUrl($relatedFile['file_path'])) {
+                        deleteFromSupabase(basename($relatedFile['file_path']));
+                    }
                 }
             }
         } else {

@@ -57,14 +57,22 @@ switch ($method) {
             
             $object = $result[0];
             
-            // Add full URL to file path
-            $object['file_url'] = BASE_URL . '/uploads/' . $object['file_path'];
+            // Check if it's already a full URL (Supabase) or needs to be constructed
+            if (filter_var($object['file_path'], FILTER_VALIDATE_URL)) {
+                $object['file_url'] = $object['file_path']; // It's already a full URL (Supabase)
+            } else {
+                $object['file_url'] = BASE_URL . '/uploads/' . $object['file_path']; // Local file
+            }
             
             // Process related files if any
             if (!empty($object['related_files'])) {
                 $relatedFiles = json_decode($object['related_files'], true);
                 foreach ($relatedFiles as &$file) {
-                    $file['file_url'] = BASE_URL . '/uploads/' . $file['file_path'];
+                    if (filter_var($file['file_path'], FILTER_VALIDATE_URL)) {
+                        $file['file_url'] = $file['file_path']; // It's already a full URL (Supabase)
+                    } else {
+                        $file['file_url'] = BASE_URL . '/uploads/' . $file['file_path']; // Local file
+                    }
                 }
                 $object['related_files'] = $relatedFiles;
             }
@@ -81,13 +89,22 @@ switch ($method) {
             
             // Add full URLs to file paths
             foreach ($objects as &$object) {
-                $object['file_url'] = BASE_URL . '/uploads/' . $object['file_path'];
+                // Check if it's already a full URL (Supabase) or needs to be constructed
+                if (filter_var($object['file_path'], FILTER_VALIDATE_URL)) {
+                    $object['file_url'] = $object['file_path']; // It's already a full URL (Supabase)
+                } else {
+                    $object['file_url'] = BASE_URL . '/uploads/' . $object['file_path']; // Local file
+                }
                 
                 // Process related files if any
                 if (!empty($object['related_files'])) {
                     $relatedFiles = json_decode($object['related_files'], true);
                     foreach ($relatedFiles as &$file) {
-                        $file['file_url'] = BASE_URL . '/uploads/' . $file['file_path'];
+                        if (filter_var($file['file_path'], FILTER_VALIDATE_URL)) {
+                            $file['file_url'] = $file['file_path']; // It's already a full URL (Supabase)
+                        } else {
+                            $file['file_url'] = BASE_URL . '/uploads/' . $file['file_path']; // Local file
+                        }
                     }
                     $object['related_files'] = $relatedFiles;
                 }
@@ -325,19 +342,37 @@ switch ($method) {
         
         $object = $result[0];
         
-        // Delete file from disk
-        $filePath = UPLOAD_DIR . $object['file_path'];
-        if (file_exists($filePath)) {
-            unlink($filePath);
+        // Include Supabase storage functionality if enabled
+        require_once __DIR__ . '/../includes/supabase_storage.php';
+        $useSupabase = is_supabase_enabled();
+        
+        // Handle file deletion - either from local disk or Supabase
+        if (filter_var($object['file_path'], FILTER_VALIDATE_URL) && $useSupabase) {
+            // Delete from Supabase
+            $fileName = basename($object['file_path']);
+            deleteFromSupabase($fileName);
+        } else {
+            // Delete from local disk
+            $filePath = UPLOAD_DIR . $object['file_path'];
+            if (file_exists($filePath)) {
+                unlink($filePath);
+            }
         }
         
         // Delete related files if any
         if (!empty($object['related_files'])) {
             $relatedFiles = json_decode($object['related_files'], true);
             foreach ($relatedFiles as $file) {
-                $relatedPath = UPLOAD_DIR . $file['file_path'];
-                if (file_exists($relatedPath)) {
-                    unlink($relatedPath);
+                if (filter_var($file['file_path'], FILTER_VALIDATE_URL) && $useSupabase) {
+                    // Delete from Supabase
+                    $fileName = basename($file['file_path']);
+                    deleteFromSupabase($fileName);
+                } else {
+                    // Delete from local disk
+                    $relatedPath = UPLOAD_DIR . $file['file_path'];
+                    if (file_exists($relatedPath)) {
+                        unlink($relatedPath);
+                    }
                 }
             }
         }
